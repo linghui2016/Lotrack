@@ -1,61 +1,45 @@
 package soot.jimple.infoflow.loadtime;
 
-import heros.EdgeFunction;
-import heros.solver.JumpFnSingleton;
-import heros.solver.JumpFunctions;
-import heros.solver.Pair;
-import heros.solver.PathEdge;
-
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveAction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import javax.jms.IllegalStateException;
-import javax.management.RuntimeErrorException;
-
-import com.sun.media.jfxmedia.logging.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
 
+import heros.EdgeFunction;
+import heros.solver.JumpFnSingleton;
+import heros.solver.JumpFunctions;
+import heros.solver.PathEdge;
 import soot.Local;
 import soot.SootField;
 import soot.SootMethod;
-import soot.Type;
 import soot.Unit;
 import soot.Value;
+import soot.jimple.ConditionExpr;
 import soot.jimple.EqExpr;
 import soot.jimple.GeExpr;
 import soot.jimple.GtExpr;
 import soot.jimple.IfStmt;
-import soot.jimple.InstanceFieldRef;
 import soot.jimple.IntConstant;
 import soot.jimple.LeExpr;
 import soot.jimple.LtExpr;
 import soot.jimple.NeExpr;
-import soot.jimple.ConditionExpr;
-import soot.jimple.NullConstant;
 import soot.jimple.infoflow.aliasing.Aliasing;
 import soot.jimple.infoflow.data.Abstraction;
-import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.SourceContext;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 import soot.spl.ifds.CachedZ3Solver;
