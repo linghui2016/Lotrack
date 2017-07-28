@@ -29,20 +29,19 @@ import java.util.concurrent.TimeoutException;
 
 import soot.SootMethod;
 import soot.Unit;
-import soot.jimple.infoflow.InfoflowResults;
 import soot.jimple.infoflow.IInfoflow.CallgraphAlgorithm;
+import soot.jimple.infoflow.InfoflowResults;
 import soot.jimple.infoflow.InfoflowResults.SinkInfo;
 import soot.jimple.infoflow.InfoflowResults.SourceInfo;
-import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.android.AndroidSourceSinkManager.LayoutMatchingMode;
+import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
 import soot.jimple.infoflow.taintWrappers.EasyTaintWrapper;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 
 public class Test {
-	
-	private static final class MyResultsAvailableHandler implements
-			ResultsAvailableHandler {
+
+	private static final class MyResultsAvailableHandler implements ResultsAvailableHandler {
 		private final BufferedWriter wr;
 
 		private MyResultsAvailableHandler() {
@@ -54,19 +53,16 @@ public class Test {
 		}
 
 		@Override
-		public void onResultsAvailable(
-				BiDiInterproceduralCFG<Unit, SootMethod> cfg,
-				InfoflowResults results) {
+		public void onResultsAvailable(BiDiInterproceduralCFG<Unit, SootMethod> cfg, InfoflowResults results) {
 			// Dump the results
 			if (results == null) {
 				print("No results found.");
-			}
-			else {
+			} else {
 				for (SinkInfo sink : results.getResults().keySet()) {
 					print("Found a flow to sink " + sink + ", from the following sources:");
 					for (SourceInfo source : results.getResults().get(sink)) {
-//						print("\t- " + source.getSource() + " (in "
-//								+ cfg.getMethodOf(source.getContext()).getSignature()  + ")");
+						// print("\t- " + source.getSource() + " (in "
+						// + cfg.getMethodOf(source.getContext()).getSignature() + ")");
 						if (source.getPath() != null && !source.getPath().isEmpty())
 							print("\t\ton Path " + source.getPath());
 					}
@@ -79,19 +75,18 @@ public class Test {
 				System.out.println(string);
 				if (wr != null)
 					wr.write(string + "\n");
-			}
-			catch (IOException ex) {
+			} catch (IOException ex) {
 				// ignore
 			}
 		}
 	}
-	
+
 	static String command;
 	static boolean generate = false;
-	
+
 	private static int timeout = -1;
 	private static int sysTimeout = -1;
-	
+
 	private static boolean stopAfterFirstFlow = false;
 	private static boolean implicitFlows = false;
 	private static boolean staticTracking = true;
@@ -102,63 +97,63 @@ public class Test {
 	private static boolean flowSensitiveAliasing = true;
 	private static boolean computeResultPaths = true;
 	private static boolean aggressiveTaintWrapper = false;
-	
+
 	private static CallgraphAlgorithm callgraphAlgorithm = CallgraphAlgorithm.AutomaticSelection;
-	
+
 	private static boolean DEBUG = false;
 
 	/**
-	 * @param args[0] = path to apk-file
-	 * @param args[1] = path to android-dir (path/android-platforms/)
+	 * @param args[0]
+	 *            = path to apk-file
+	 * @param args[1]
+	 *            = path to android-dir (path/android-platforms/)
 	 */
 	public static void main(final String[] args) throws IOException, InterruptedException {
 		if (args.length < 2) {
-			printUsage();	
+			printUsage();
 			return;
 		}
-		
-		//start with cleanup:
+
+		// start with cleanup:
 		File outputDir = new File("JimpleOutput");
-		if (outputDir.isDirectory()){
+		if (outputDir.isDirectory()) {
 			boolean success = true;
-			for(File f : outputDir.listFiles()){
+			for (File f : outputDir.listFiles()) {
 				success = success && f.delete();
 			}
-			if(!success){
-				System.err.println("Cleanup of output directory "+ outputDir + " failed!");
+			if (!success) {
+				System.err.println("Cleanup of output directory " + outputDir + " failed!");
 			}
 			outputDir.delete();
 		}
-		
+
 		// Parse additional command-line arguments
 		if (!parseAdditionalOptions(args))
 			return;
 		if (!validateAdditionalOptions())
 			return;
-		
+
 		List<String> apkFiles = new ArrayList<String>();
 		File apkFile = new File(args[0]);
 		String extension = apkFile.getName().substring(apkFile.getName().lastIndexOf("."));
 		if (apkFile.isDirectory()) {
 			String[] dirFiles = apkFile.list(new FilenameFilter() {
-			
+
 				@Override
 				public boolean accept(File dir, String name) {
 					return (name.endsWith(".apk"));
 				}
-			
+
 			});
 			for (String s : dirFiles)
 				apkFiles.add(s);
-		}
-		else if (extension.equalsIgnoreCase(".txt")) {
+		} else if (extension.equalsIgnoreCase(".txt")) {
 			BufferedReader rdr = new BufferedReader(new FileReader(apkFile));
 			String line = null;
 			while ((line = rdr.readLine()) != null)
 				apkFiles.add(line);
 			rdr.close();
-		}
-		else if (extension.equalsIgnoreCase(".apk"))
+		} else if (extension.equalsIgnoreCase(".apk"))
 			apkFiles.add(args[0]);
 		else {
 			System.err.println("Invalid input file format: " + extension);
@@ -167,7 +162,7 @@ public class Test {
 
 		for (final String fileName : apkFiles) {
 			final String fullFilePath;
-			
+
 			// Directory handling
 			if (apkFiles.size() > 1) {
 				if (apkFile.isDirectory())
@@ -179,8 +174,7 @@ public class Test {
 				if (flagFile.exists())
 					continue;
 				flagFile.createNewFile();
-			}
-			else
+			} else
 				fullFilePath = fileName;
 
 			// Run the analysis
@@ -195,36 +189,29 @@ public class Test {
 		}
 	}
 
-
 	private static boolean parseAdditionalOptions(String[] args) {
 		int i = 2;
 		while (i < args.length) {
 			if (args[i].equalsIgnoreCase("--timeout")) {
-				timeout = Integer.valueOf(args[i+1]);
+				timeout = Integer.valueOf(args[i + 1]);
 				i += 2;
-			}
-			else if (args[i].equalsIgnoreCase("--systimeout")) {
-				sysTimeout = Integer.valueOf(args[i+1]);
+			} else if (args[i].equalsIgnoreCase("--systimeout")) {
+				sysTimeout = Integer.valueOf(args[i + 1]);
 				i += 2;
-			}
-			else if (args[i].equalsIgnoreCase("--singleflow")) {
+			} else if (args[i].equalsIgnoreCase("--singleflow")) {
 				stopAfterFirstFlow = true;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--implicit")) {
+			} else if (args[i].equalsIgnoreCase("--implicit")) {
 				implicitFlows = true;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--nostatic")) {
+			} else if (args[i].equalsIgnoreCase("--nostatic")) {
 				staticTracking = false;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--aplength")) {
-				accessPathLength = Integer.valueOf(args[i+1]);
+			} else if (args[i].equalsIgnoreCase("--aplength")) {
+				accessPathLength = Integer.valueOf(args[i + 1]);
 				i += 2;
-			}
-			else if (args[i].equalsIgnoreCase("--cgalgo")) {
-				String algo = args[i+1];
+			} else if (args[i].equalsIgnoreCase("--cgalgo")) {
+				String algo = args[i + 1];
 				if (algo.equalsIgnoreCase("AUTO"))
 					callgraphAlgorithm = CallgraphAlgorithm.AutomaticSelection;
 				else if (algo.equalsIgnoreCase("VTA"))
@@ -236,17 +223,14 @@ public class Test {
 					return false;
 				}
 				i += 2;
-			}
-			else if (args[i].equalsIgnoreCase("--nocallbacks")) {
+			} else if (args[i].equalsIgnoreCase("--nocallbacks")) {
 				enableCallbacks = false;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--noexceptions")) {
+			} else if (args[i].equalsIgnoreCase("--noexceptions")) {
 				enableExceptions = false;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--layoutmode")) {
-				String algo = args[i+1];
+			} else if (args[i].equalsIgnoreCase("--layoutmode")) {
+				String algo = args[i + 1];
 				if (algo.equalsIgnoreCase("NONE"))
 					layoutMatchingMode = LayoutMatchingMode.NoMatch;
 				else if (algo.equalsIgnoreCase("PWD"))
@@ -258,58 +242,54 @@ public class Test {
 					return false;
 				}
 				i += 2;
-			}
-			else if (args[i].equalsIgnoreCase("--aliasflowins")) {
+			} else if (args[i].equalsIgnoreCase("--aliasflowins")) {
 				flowSensitiveAliasing = false;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--nopaths")) {
+			} else if (args[i].equalsIgnoreCase("--nopaths")) {
 				computeResultPaths = false;
 				i++;
-			}
-			else if (args[i].equalsIgnoreCase("--aggressivetw")) {
+			} else if (args[i].equalsIgnoreCase("--aggressivetw")) {
 				aggressiveTaintWrapper = false;
 				i++;
-			}
-			else
+			} else
 				i++;
 		}
 		return true;
 	}
-	
+
 	private static boolean validateAdditionalOptions() {
 		if (timeout > 0 && sysTimeout > 0) {
 			return false;
 		}
 		return true;
 	}
-	
+
 	private static void runAnalysisTimeout(final String fileName, final String androidJar) {
 		FutureTask<InfoflowResults> task = new FutureTask<InfoflowResults>(new Callable<InfoflowResults>() {
 
 			@Override
 			public InfoflowResults call() throws Exception {
-				
-				final BufferedWriter wr = new BufferedWriter(new FileWriter("_out_" + new File(fileName).getName() + ".txt"));
+
+				final BufferedWriter wr = new BufferedWriter(
+						new FileWriter("_out_" + new File(fileName).getName() + ".txt"));
 				try {
 					final long beforeRun = System.nanoTime();
 					wr.write("Running data flow analysis...\n");
 					final InfoflowResults res = runAnalysis(fileName, androidJar);
 					wr.write("Analysis has run for " + (System.nanoTime() - beforeRun) / 1E9 + " seconds\n");
-					
+
 					wr.flush();
 					return res;
-				}
-				finally {
+				} finally {
 					if (wr != null)
 						wr.close();
 				}
 			}
-			
+
 		});
 		ExecutorService executor = Executors.newFixedThreadPool(1);
 		executor.execute(task);
-		
+
 		try {
 			System.out.println("Running infoflow task...");
 			task.get(timeout, TimeUnit.MINUTES);
@@ -323,30 +303,21 @@ public class Test {
 			System.err.println("Infoflow computation interrupted: " + e.getMessage());
 			e.printStackTrace();
 		}
-		
+
 		// Make sure to remove leftovers
-		executor.shutdown();		
+		executor.shutdown();
 	}
 
 	private static void runAnalysisSysTimeout(final String fileName, final String androidJar) {
 		String classpath = System.getProperty("java.class.path");
 		String javaHome = System.getProperty("java.home");
 		String executable = "/usr/bin/timeout";
-		String[] command = new String[] { executable,
-				"-s", "KILL",
-				sysTimeout + "m",
-				javaHome + "/bin/java",
-				"-cp", classpath,
-				"soot.jimple.infoflow.android.TestApps.Test",
-				fileName,
-				androidJar,
-				stopAfterFirstFlow ? "--singleflow" : "--nosingleflow",
-				implicitFlows ? "--implicit" : "--noimplicit",
-				staticTracking ? "--static" : "--nostatic", 
-				"--aplength", Integer.toString(accessPathLength),
+		String[] command = new String[] { executable, "-s", "KILL", sysTimeout + "m", javaHome + "/bin/java", "-cp",
+				classpath, "soot.jimple.infoflow.android.TestApps.Test", fileName, androidJar,
+				stopAfterFirstFlow ? "--singleflow" : "--nosingleflow", implicitFlows ? "--implicit" : "--noimplicit",
+				staticTracking ? "--static" : "--nostatic", "--aplength", Integer.toString(accessPathLength),
 				"--cgalgo", callgraphAlgorithmToString(callgraphAlgorithm),
-				enableCallbacks ? "--callbacks" : "--nocallbacks",
-				enableExceptions ? "--exceptions" : "--noexceptions",
+				enableCallbacks ? "--callbacks" : "--nocallbacks", enableExceptions ? "--exceptions" : "--noexceptions",
 				"--layoutmode", layoutMatchingModeToString(layoutMatchingMode),
 				flowSensitiveAliasing ? "--aliasflowsens" : "--aliasflowins",
 				computeResultPaths ? "--paths" : "--nopaths",
@@ -366,37 +337,37 @@ public class Test {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	public static String callgraphAlgorithmToString(CallgraphAlgorithm algorihm) {
 		switch (algorihm) {
-			case AutomaticSelection:
-				return "AUTO";
-			case VTA:
-				return "VTA";
-			case RTA:
-				return "RTA";
-			default:
-				return "unknown";
+		case AutomaticSelection:
+			return "AUTO";
+		case VTA:
+			return "VTA";
+		case RTA:
+			return "RTA";
+		default:
+			return "unknown";
 		}
 	}
 
 	public static String layoutMatchingModeToString(LayoutMatchingMode mode) {
 		switch (mode) {
-			case NoMatch:
-				return "NONE";
-			case MatchSensitiveOnly:
-				return "PWD";
-			case MatchAll:
-				return "ALL";
-			default:
-				return "unknown";
+		case NoMatch:
+			return "NONE";
+		case MatchSensitiveOnly:
+			return "PWD";
+		case MatchAll:
+			return "ALL";
+		default:
+			return "unknown";
 		}
 	}
 
 	private static InfoflowResults runAnalysis(final String fileName, final String androidJar) {
 		try {
 			final long beforeRun = System.nanoTime();
-				
+
 			final SetupApplication app = new SetupApplication(androidJar, fileName);
 
 			app.setStopAfterFirstFlow(stopAfterFirstFlow);
@@ -417,13 +388,13 @@ public class Test {
 			taintWrapper.setAggressiveMode(aggressiveTaintWrapper);
 			app.setTaintWrapper(taintWrapper);
 			app.calculateSourcesSinksEntrypoints("SourcesAndSinks.txt");
-			
+
 			if (DEBUG) {
 				app.printEntrypoints();
 				app.printSinks();
 				app.printSources();
 			}
-				
+
 			System.out.println("Running data flow analysis...");
 			final InfoflowResults res = app.runInfoflow(new MyResultsAvailableHandler());
 			System.out.println("Analysis has run for " + (System.nanoTime() - beforeRun) / 1E9 + " seconds");

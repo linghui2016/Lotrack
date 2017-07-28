@@ -1,7 +1,5 @@
 package controllers;
 
-
-
 import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -44,12 +42,14 @@ import play.libs.Json;
 import play.mvc.*;
 import views.html.*;
 
-
+/**
+ * The main class to load main page of load-time gui
+ * @author linghui
+ *
+ */
 public class Application extends Controller {
-	
+	private static final boolean PRINT_RESULT=true;
     private static final Map<String, String> projects;
-    private static final String dataPathSearch;
-    private static final String dataPathReplace;
     
     static
     {
@@ -59,7 +59,7 @@ public class Application extends Controller {
     	String infoflowPath = conf.getString("SootInfoflowConfPath");
     	File file = new File(infoflowPath);
     	
-    	Logger.info("File {} exists: {} infoflowPath {}", file.getAbsolutePath(), file.exists(), infoflowPath);
+    	Logger.info("application.conf file {} for load-time gui exists: {}! InfoflowPath {}", file.getAbsolutePath(), file.exists(), infoflowPath);
     	Config config = ConfigFactory.parseFile(file).resolve();
     	for(Entry<String, ConfigValue> entry : config.root().entrySet()) {
     		String name = entry.getKey();
@@ -70,9 +70,6 @@ public class Application extends Controller {
     		}
     		projects.put(name, srcPath);
     	}
-    	
-    	dataPathSearch = conf.getString("dataPathSearch");
-    	dataPathReplace = conf.getString("dataPathReplace");
     }
 
 	public static Result project(String name) {
@@ -93,7 +90,7 @@ public class Application extends Controller {
 	
 	public static Result detailedLineInfo(String app, String path, int lineNumber) throws Exception {
 		String className = FilenameUtils.getBaseName(path);
-		System.out.println("className " + className + " line number " + lineNumber);
+		Logger.info("detailedLineInfo(): className " + className + " line number " + lineNumber);
 		try {
 			LineInfo lineInfo = new LineInfo();
 			
@@ -154,14 +151,13 @@ public class Application extends Controller {
 					JSTreeNode node = null;
 					
 					String filepath = file.getPath();
-					filepath = StringUtils.replace(filepath, dataPathSearch, dataPathReplace);
-					filepath = StringUtils.replace(filepath, "/", "\\");
 					
 					if(counts.containsKey(filepath)) {
 						int count = counts.get(filepath);
 						node = new JSTreeNode(file.getPath(), file.getName() + " (" + count + ")");
+						Logger.info("addDir: "+filepath+ " found in DB");
 					} else {
-						Logger.info(filepath + " not found in DB");
+						//Logger.info("addDir: "+filepath + " not found in DB");
 						node = new JSTreeNode(file.getPath(), file.getName());
 					}
 					node.icon = "glyphicon glyphicon-minus";
@@ -175,6 +171,7 @@ public class Application extends Controller {
 	
 	public static void loadJimpleTree(String project, JSTreeNode tree) throws Exception
 	{
+		Logger.info("loadJimpleTree("+project+")");
 		try(MongoLoader mongoLoader = new MongoLoader())
 		{
 			for(Entry<String, String> entry : mongoLoader.getJimplePaths(project).entrySet())
@@ -187,15 +184,13 @@ public class Application extends Controller {
 	}
 	
 	public static Result fileTree(String project) throws Exception {
-		
 		if(!projects.containsKey(project)) {
-			return internalServerError("Project " + project + "unknown");
+			return internalServerError("fileTree("+project+"): project " + project + "unknown");
 		}
-		
+		Logger.info("fileTree("+project+") loaded");
 		JSTreeNode tree = new JSTreeNode(project);
-		
 		String path = projects.get(project);
-		Logger.info("fileTree() path {} ", path);
+		Logger.info("fileTree("+project+"): src path {} ", path);
 		if(path == null) {
 			loadJimpleTree(project, tree);
 			return ok(Json.toJson(tree));
@@ -204,7 +199,7 @@ public class Application extends Controller {
 		File file = new File(path);
 		
 		if(!file.exists()) {
-			return internalServerError("File " + file.getAbsolutePath() + " not found."); 
+			return internalServerError("fileTree("+project+"): file" + file.getAbsolutePath() + " not found."); 
 		}
 		
 
@@ -231,12 +226,7 @@ public class Application extends Controller {
 			String path = request().body().asFormUrlEncoded().get("fileName")[0];
 			String project = request().body().asFormUrlEncoded().get("project")[0];
 			
-			Logger.info("path {} replace {} with {}", path, dataPathSearch, dataPathReplace);
-			
-			path = StringUtils.replace(path, dataPathSearch, dataPathReplace);
-			path = StringUtils.replace(path, "/", "\\");
-			
-			Logger.info("Path {}", path);
+			Logger.info("loadResult(): jimplePath {}", path);
 
 			List<DBObject> results = mongoLoader.getResults(path, project);
 			
@@ -250,15 +240,25 @@ public class Application extends Controller {
 				
 				String[] javaLines = loadJavaLines(javaPath);
 				
+				int resultNo=0;
+				Logger.info("loadResult(): loading results...");
 				for(DBObject result : results) {
-					
-//					Logger.info("Result class {} jimplePath {} constraint {} javaLineNo {} JimpleLineNo {}", 
-//							(String) result.get("Class"),
-//							(String) result.get("JimplePath"),
-//							(String) result.get("ConstraintPretty"),
-//							(int) result.get("JavaLineNo"),
-//							(int) result.get("JimpleLineNo"));
-					
+					if( !result.get("ConstraintPretty").equals("true")&&PRINT_RESULT)
+					{
+						resultNo++;
+						Logger.info("............Result "+resultNo+"............");
+						Logger.info("Result"+resultNo+":\t class: {}", 
+								(String) result.get("Class"));
+						Logger.info("Result"+resultNo+":\t jimplePath: {}", 
+								(String) result.get("JimplePath"));
+						Logger.info("Result"+resultNo+":\t constraint: {}",  
+								(String) result.get("ConstraintPretty"));
+						Logger.info("Result"+resultNo+":\t javaLineNo: {}", 
+								(int) result.get("JavaLineNo"));
+						Logger.info("Result"+resultNo+":\t JimpleLineNo: {}", 
+								(int) result.get("JimpleLineNo"));
+						Logger.info("..................................");
+					}
 					String className = (String) result.get("Class");
 					String jimplePath = (String) result.get("JimplePath");
 					String constraint = (String) result.get("ConstraintPretty");
@@ -277,18 +277,11 @@ public class Application extends Controller {
 					
 					String[] jimpleLines = jimpleSources.get(jimplePath);
 					int jimpleLineNo = (int) result.get("JimpleLineNo");
-//					boolean isInSlice = mongoLoader.isInSlice(className, jimpleLineNo);
 					boolean isInSlice = false;
 					String sliceText = isInSlice ? "<span style=\"background: #FF9933\">  SLICE  </span>" : "";
 					
 					String bcMethodName = (String) result.get("methodBytecodeSignatureJoanaStyle");
 					BasicDBList bytecodeIndexes = (BasicDBList) result.get("bytecodeIndexes");
-					   
-					// Look for joana results
-//					Set<String> joanaSlice = mongoLoader.joanaSlice(project, bcMethodName, bytecodeIndexes);
-//					if(!joanaSlice.isEmpty()) {
-//						sliceText += "<span style=\"background: #CC99FF\">  JOANA {" + StringUtils.join(joanaSlice, ",") + "}  </span>";
-//					}
 					
 					if(!constraint.equals("true")) {
 						if(javaLines != null) {
@@ -324,7 +317,7 @@ public class Application extends Controller {
 						}
 					}
 				}
-				
+				Logger.info("loadResult(): results loaded");
 				Map<String, String> jimpleResultSources = new TreeMap<String, String>(Comparator.reverseOrder());
 				for(String entry : jimpleSources.keySet()) {
 					jimpleResultSources.put(entry,  Joiner.on("\n").join(jimpleSources.get(entry)));
@@ -333,7 +326,7 @@ public class Application extends Controller {
 				analysisResult.javaSource = javaLines != null ? Joiner.on("\n").join(javaLines) : "";
 				analysisResult.jimpleSource = jimpleResultSources;
 			} else {
-				Logger.info("No results found for path " + path);
+				Logger.info("loadResult(): No results found for path " + path);
 				
 				String[] javaLines = loadJavaLines(path);
 				analysisResult.javaSource = javaLines != null ? Joiner.on("\n").join(javaLines) : "";
@@ -352,15 +345,13 @@ public class Application extends Controller {
 	}
 
 	private static String[] loadJavaLines(String javaPath) throws IOException {
-		javaPath = StringUtils.replace(javaPath, dataPathReplace, dataPathSearch);
 		javaPath = StringUtils.replace(javaPath, "\\", File.separator);
-		
+		Logger.info("loadJavaLines(string javaPath): javaPath="+javaPath);
 		String[] javaLines = null;
 		if(javaPath != null) {
 			File javaSourceFile = new File(javaPath);
-			
 			if(!javaSourceFile.exists()) {
-				Logger.info("java soruce file {} not found", javaPath);
+				Logger.info("loadJavaLines(string javaPath): java soruce file {} not found", javaPath);
 			} else {
 			
 				String javaSource = FileUtils.readFileToString(javaSourceFile);

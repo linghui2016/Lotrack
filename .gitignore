@@ -1,0 +1,8 @@
+/.metadata/
+/.recommenders/
+*.bson
+Evaluation/MongoDB dump/loadtime/org_projectmaxs_module_filewrite_15.metadata.json
+*.json
+*.h
+*.py
+*.pyc

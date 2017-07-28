@@ -18,26 +18,32 @@ import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.taintWrappers.EasyTaintWrapper;
 
 public class JUnitTests {
-	
+
 	/**
 	 * Analyzes the given APK file for data flows
-	 * @param fileName The full path and file name of the APK file to analyze
+	 * 
+	 * @param fileName
+	 *            The full path and file name of the APK file to analyze
 	 * @return The data leaks found in the given APK file
-	 * @throws IOException Thrown if the given APK file or any other required
-	 * file could not be found
+	 * @throws IOException
+	 *             Thrown if the given APK file or any other required file could not
+	 *             be found
 	 */
 	public InfoflowResults analyzeAPKFile(String fileName) throws IOException {
 		return analyzeAPKFile(fileName, false);
 	}
-	
+
 	/**
 	 * Analyzes the given APK file for data flows
-	 * @param fileName The full path and file name of the APK file to analyze
-	 * @param enableImplicitFlows True if implicit flows shall be tracked,
-	 * otherwise false
+	 * 
+	 * @param fileName
+	 *            The full path and file name of the APK file to analyze
+	 * @param enableImplicitFlows
+	 *            True if implicit flows shall be tracked, otherwise false
 	 * @return The data leaks found in the given APK file
-	 * @throws IOException Thrown if the given APK file or any other required
-	 * file could not be found
+	 * @throws IOException
+	 *             Thrown if the given APK file or any other required file could not
+	 *             be found
 	 */
 	public InfoflowResults analyzeAPKFile(String fileName, boolean enableImplicitFlows) throws IOException {
 		String androidJars = System.getenv("ANDROID_JARS");
@@ -49,9 +55,9 @@ public class JUnitTests {
 		if (droidBenchDir == null)
 			droidBenchDir = System.getProperty("DROIDBENCH");
 		if (droidBenchDir == null)
-			throw new RuntimeException("DroidBench dir not set");		
+			throw new RuntimeException("DroidBench dir not set");
 		System.out.println("Loading DroidBench from " + droidBenchDir);
-		
+
 		SetupApplication setupApplication = new SetupApplication(androidJars,
 				droidBenchDir + File.separator + fileName);
 		setupApplication.setTaintWrapper(new EasyTaintWrapper("EasyTaintWrapperSource.txt"));
